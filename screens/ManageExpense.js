@@ -12,6 +12,10 @@ function ManageExpense({ route, navigation }) {
   const editedExpenseId = route.params?.expenseId; // '?' checks if params is undefined
   const isEditing = !!editedExpenseId; // convert to a boolean checking whether there is an id or not
 
+  const selectedExpense = expensesCtx.expenses.find(
+    (expense) => expense.id === editedExpenseId
+  );
+
   useLayoutEffect(() => {
     navigation.setOptions({
       // always wrap setOptions with useLayoutEffect
@@ -44,6 +48,7 @@ function ManageExpense({ route, navigation }) {
         submitButtonLabel={isEditing ? "Update" : "Add"}
         onCancel={cancelHandler}
         onSubmit={confirmHandler}
+        defaultValues={selectedExpense}
       />
 
       <View style={styles.deleteContainer}>
