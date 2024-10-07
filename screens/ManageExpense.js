@@ -7,9 +7,11 @@ import { ExpensesContext } from "../store/expenses-context";
 import ExpenseForm from "../components/ManageExpense/ExpenseForm";
 import { deleteExpense, storeExpense, updateExpense } from "../util/http";
 import LoadingOverlay from "../components/UI/LoadingOverlay";
+import ErrorOverlay from "../components/UI/ErrorOverlay";
 
 function ManageExpense({ route, navigation }) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState();
   const expensesCtx = useContext(ExpensesContext);
 
   const editedExpenseId = route.params?.expenseId; // '?' checks if params is undefined
@@ -27,11 +29,15 @@ function ManageExpense({ route, navigation }) {
   }, [navigation, isEditing]);
 
   async function deleteExpenseHandler() {
-    expensesCtx.deleteExpense(editedExpenseId);
     setIsUpdating(true);
-    await deleteExpense(editedExpenseId);
-    setIsUpdating(false);
-    navigation.goBack();
+    try {
+      await deleteExpense(editedExpenseId);
+      expensesCtx.deleteExpense(editedExpenseId);
+      navigation.goBack();
+    } catch (error) {
+      setError("Could not delete expense - please try again later!");
+      setIsUpdating(false);
+    }
   }
 
   function cancelHandler() {
@@ -39,19 +45,29 @@ function ManageExpense({ route, navigation }) {
   }
 
   async function confirmHandler(expenseData) {
-    if (isEditing) {
-      expensesCtx.updateExpense(editedExpenseId, expenseData);
-      setIsUpdating(true);
-      await updateExpense(editedExpenseId, expenseData);
+    setIsUpdating(true);
+    try {
+      if (isEditing) {
+        await updateExpense(editedExpenseId, expenseData);
+        expensesCtx.updateExpense(editedExpenseId, expenseData);
+      } else {
+        const id = await storeExpense(expenseData);
+        expensesCtx.addExpense({ ...expenseData, id: id });
+      }
+      navigation.goBack();
+    } catch (error) {
+      setError("Could not update - please try again later!");
       setIsUpdating(false);
-    } else {
-      setIsUpdating(true);
-      const id = await storeExpense(expenseData);
-      setIsUpdating(false);
-      expensesCtx.addExpense({ ...expenseData, id: id });
     }
+  }
 
-    navigation.goBack();
+  // function errorHandler() {
+  //   setError(null);
+  // }
+
+  if (error && !isUpdating) {
+    // return <ErrorOverlay message={error} onConfirm={errorHandler} />;
+    return <ErrorOverlay message={error} />;
   }
 
   if (isUpdating) {
